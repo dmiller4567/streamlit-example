@@ -1,5 +1,5 @@
 # Import modules
-import matplotlib.pyplot as plt
+import requests
 import pandas as pd
 from nba_api.stats.endpoints import playercareerstats, playergamelog
 import streamlit as st
