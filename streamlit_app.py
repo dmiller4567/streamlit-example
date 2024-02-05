@@ -1,40 +1,53 @@
-import altair as alt
-import numpy as np
+# Import the required modules
+import requests
 import pandas as pd
 import streamlit as st
 
-"""
-# Welcome to Streamlit!
+# Define the base URL for the NBA API
+base_url = "https://stats.nba.com/stats/"
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Define the endpoint for the daily leaders
+endpoint = "leagueleaders"
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Define the parameters for the request
+params = {
+    "LeagueID": "00", # NBA
+    "PerMode": "PerGame", # Per game stats
+    "Scope": "S", # Season
+    "Season": "2023-24", # Current season
+    "SeasonType": "Regular Season", # Regular season
+    "StatCategory": "PTS" # Points
+}
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+# Define the headers for the request
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+    "Referer": "https://stats.nba.com/leaders/",
+    "x-nba-stats-origin": "stats",
+    "x-nba-stats-token": "true"
+}
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+# Make the request and get the response
+response = requests.get(base_url + endpoint, params=params, headers=headers)
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+# Check the status code
+if response.status_code == 200:
+    # Parse the JSON data
+    data = response.json()
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
+    # Get the column names
+    columns = data["resultSet"]["headers"]
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+    # Get the row values
+    rows = data["resultSet"]["rowSet"]
+
+    # Create a pandas dataframe
+    df = pd.DataFrame(rows, columns=columns)
+
+    # Display the dataframe using streamlit
+    st.title("NBA Daily Stats App")
+    st.write("This app shows the top 50 players in points per game for the current season.")
+    st.dataframe(df)
+else:
+    # Display an error message
+    st.error("Could not fetch the data from the NBA API. Please try again later.")
