@@ -11,7 +11,7 @@ endpoint = "leagueleaders"
 
 # Define the parameters for the request
 params = {
-    "LeagueID": "AA", # NBA
+    "LeagueID": "00", # NBA
     "PerMode": "PerGame", # Per game stats
     "Scope": "S", # Season
     "Season": "2023-24", # Current season
