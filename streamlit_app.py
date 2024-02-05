@@ -1,42 +1,53 @@
-# Import modules
+# Import the required modules
 import requests
 import pandas as pd
-from nba_api.stats.endpoints import playercareerstats, playergamelog
 import streamlit as st
 
-# Define a function to get the average points per game for a player in a season
-def get_avg_ppg(player_id, season):
-  # Get the game logs for the player in the season
-  player_logs = playergamelog.PlayerGameLog(player_id=player_id, season=season)
-  player_logs_df = player_logs.get_data_frames()[0]
-  # Calculate the average points per game
-  avg_ppg = player_logs_df["PTS"].mean()
-  return avg_ppg
+# Define the base URL for the NBA API
+base_url = "https://stats.nba.com/stats/"
 
-# Define a function to plot the average points per game for a player over multiple seasons
-def plot_avg_ppg(player_id, seasons):
-  # Initialize an empty list to store the average points per game
-  avg_ppg_list = []
-  # Loop through the seasons and get the average points per game
-  for season in seasons:
-    avg_ppg = get_avg_ppg(player_id, season)
-    avg_ppg_list.append(avg_ppg)
-  # Plot the average points per game as a line chart
-  plt.plot(seasons, avg_ppg_list, marker="o")
-  plt.xlabel("Season")
-  plt.ylabel("Average Points Per Game")
-  plt.title(f"Average Points Per Game for Player ID {player_id}")
-  return plt
+# Define the endpoint for the daily leaders
+endpoint = "leagueleaders"
 
-# Use Streamlit to create a web app
-st.title("NBA Stats App")
-st.write("This app shows the average points per game for a given player over multiple seasons.")
+# Define the parameters for the request
+params = {
+    "LeagueID": "00", # NBA
+    "PerMode": "PerGame", # Per game stats
+    "Scope": "S", # Season
+    "Season": "2023-24", # Current season
+    "SeasonType": "Regular Season", # Regular season
+    "StatCategory": "PTS" # Points
+}
 
-# Create a sidebar to select the player ID and the seasons
-st.sidebar.header("Select the player and the seasons")
-player_id = st.sidebar.number_input("Enter the player ID (e.g. 2544 for LeBron James)", min_value=1, max_value=9999, value=2544)
-seasons = st.sidebar.multiselect("Select the seasons", ["2019-20", "2020-21", "2021-22", "2022-23", "2023-24"], default=["2019-20", "2020-21", "2021-22", "2022-23", "2023-24"])
+# Define the headers for the request
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+    "Referer": "https://stats.nba.com/leaders/",
+    "x-nba-stats-origin": "stats",
+    "x-nba-stats-token": "true"
+}
 
-# Plot the average points per game for the selected player and seasons
-fig = plot_avg_ppg(player_id, seasons)
-st.pyplot(fig)
+# Make the request and get the response
+response = requests.get(base_url + endpoint, params=params, headers=headers)
+
+# Check the status code
+if response.status_code == 200:
+    # Parse the JSON data
+    data = response.json()
+
+    # Get the column names
+    columns = data["resultSet"]["headers"]
+
+    # Get the row values
+    rows = data["resultSet"]["rowSet"]
+
+    # Create a pandas dataframe
+    df = pd.DataFrame(rows, columns=columns)
+
+    # Display the dataframe using streamlit
+    st.title("NBA Daily Stats App")
+    st.write("This app shows the top 50 players in points per game for the current season.")
+    st.dataframe(df)
+else:
+    # Display an error message
+    st.error("Could not fetch the data from the NBA API. Please try again later.")
